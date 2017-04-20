@@ -13,32 +13,55 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Identification Application:"/>
-
+<!--
     <Button
         android:id="@+id/btnRecord"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Record"/>
-    <Button
+     <Button
         android:id="@+id/btnIdentify"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Identify"/>
+       -->
     <Button
         android:id="@+id/btnBuildRecognizer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Build Recognizer"/>
     <Button
-        android:id="@+id/btnTestFileSystem"
+        android:id="@+id/btnIdentifyUnknown"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Test File System"/>
+        android:text="Identify Unknown"/>
+    <Button
+        android:id="@+id/btnIdentifyAndTrainUnknown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Identify and Train"/>
+    <ImageView
+        android:id="@+id/unknown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        />
+    <ImageView
+        android:id="@+id/recognized"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        />
+    <TextView
+        android:id="@+id/identificationResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        />
+    <!--
     <Spinner
         android:id="@+id/spinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         />
+        -->
 </LinearLayout>
 
 

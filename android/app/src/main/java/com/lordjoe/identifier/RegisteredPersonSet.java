@@ -24,9 +24,11 @@ import static org.bytedeco.javacpp.opencv_imgcodecs.imread;
  */
 public class RegisteredPersonSet {
     public static final String TAG_NAME = "RegisteredPersonSet";
-    public static final double MINIMUM_CONFIDENCE = 0.75;
+    public static final double MINIMUM_CONFIDENCE = 55.0;
     public static final String EXAMPLAR_STRING = "Exemplar";
-    
+    public static final int NUMBER_TEST_IMAGES= 6;
+
+    public static final int FIRST_UNKNOWN_ID = 10000;
     
 
     private final Map<Integer,RegisteredPerson> registeredPeople = new HashMap<>();
@@ -108,11 +110,33 @@ public class RegisteredPersonSet {
         return registerOnePerson(name,id,examplar,images);
     }
 
+
+
+    public IdentificationResult identifyUnknown(RegisteredPerson imposter) {
+        IdentificationResult result = identify(imposter.getSampleImages() );
+        return result;
+    }
+
+
+    public boolean verifyId(int id,List<File> images) {
+        RegisteredPerson registeredPerson = registeredPeople.get(id);
+        if(registeredPerson == null)
+            return false; // we do not know id
+        IdentificationResult result = identify(images );
+        if(result == null)
+            return false; // we do not know id
+        if(result.label == id)
+            return true;
+        return false;
+    }
+
+
     public IdentificationResult identify(List<File> images )    {
         int retainedResults = 1;
-        List<IdentificationResult>   results = OpenCVUtilities.matchFiles(images,getRecognizer(), retainedResults);
+        opencv_face.FaceRecognizer recognizer = getRecognizer();
+        List<IdentificationResult>   results = OpenCVUtilities.matchFiles(images, recognizer, retainedResults);
         IdentificationResult ret = results.get(0);
-        if(ret.confidence > MINIMUM_CONFIDENCE)
+        if(ret.confidence < MINIMUM_CONFIDENCE)
             return ret;
         return null;
     }
@@ -145,7 +169,7 @@ public class RegisteredPersonSet {
     }
 
     public Integer findUnusedId()    {
-        return findUnusedId(1);
+        return findUnusedId(FIRST_UNKNOWN_ID);
     }
 
     public Integer findUnusedId(int ret)    {
@@ -168,6 +192,59 @@ public class RegisteredPersonSet {
         File examplar = testFiles.get(0);
          return addPerson(name,id,examplar,images);
     }
+
+
+    public  RegisteredPerson addPerson(RegisteredPerson outsidePerson)
+    {
+        RegisteredPerson added = addPerson(outsidePerson.getName(),outsidePerson.getId(),outsidePerson.getExemplar(),outsidePerson.getSampleImages());
+        update(added);
+        return added;
+    }
+
+    /*
+       update the recognizer  with a new person
+     */
+    public void update(RegisteredPerson added) {
+        if(isTrainable()) {
+            updateFromPerson(added);
+        }
+        else {
+            trainFromFiles();
+        }
+    }
+
+    public void updateFromPerson(RegisteredPerson added) {
+        if(!isTrainable())
+            throw new IllegalArgumentException("Only call on trainable recognizers");
+
+        List<File> files = added.getSampleImages();
+        int label = added.getId();
+        int size = files.size();
+        opencv_core.MatVector images = new opencv_core.MatVector(size);
+
+        opencv_core.Mat labels = new opencv_core.Mat(size, 1, CV_32SC1);
+        IntBuffer labelsBuf = labels.createBuffer();
+
+        int counter = 0;
+
+        for (File image : files) {
+            opencv_core.Mat img = imread(image.getAbsolutePath(), CV_LOAD_IMAGE_GRAYSCALE);
+            opencv_core.Mat smaller = null;
+            //    org.bytedeco.javacpp.opencv_imgcodecs.
+               images.put(counter, img);
+
+            labelsBuf.put(counter, label);
+
+            counter++;
+        }
+
+        recognizer.update(images, labels);
+        registeredPeople.put(added.getId(),added) ;
+        registeredNames.put(added.getName(),added) ;
+        people.add(added);
+
+    }
+
 
     private RegisteredPerson addPerson(String name, Integer id, File examplar, List<File> images) {
         File base = getStoreDirectory();
@@ -192,6 +269,7 @@ public class RegisteredPersonSet {
             saveAndLabelCroppedImage( imageFile, baseDir,id);
             croppedImages.add(new File(baseDir,id.toString() + "-" + imageFile.getName()));
            }
+
         return new RegisteredPerson(name,id,examplarFile,croppedImages);
 
     }
@@ -223,6 +301,17 @@ public class RegisteredPersonSet {
         people.add(person);
         return person;
 
+    }
+
+    public RegisteredPerson getByName(String name)
+    {
+        return registeredNames.get(name);
+    }
+
+
+    public RegisteredPerson getById(int id)
+    {
+        return registeredPeople.get(id);
     }
 
     public RegisteredPerson makeRegisteredPerson(String name, Integer id,File examplar, List<File> images) {
@@ -286,6 +375,18 @@ public class RegisteredPersonSet {
         Log.e(TAG_NAME,"register person");
         return people.get(index);
     }
+
+    public RegisteredPerson[] getPeople() {
+        RegisteredPerson[] ret = new  RegisteredPerson[people.size()];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = people.get(i);
+
+        }
+        return ret;
+    }
+
+
+
 //
 //    private static void createCaltechPersonSet(String[] args) {
 //        File basedir = new File(args[0]) ;

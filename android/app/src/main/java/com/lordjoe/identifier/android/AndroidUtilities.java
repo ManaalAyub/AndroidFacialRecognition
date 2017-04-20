@@ -18,6 +18,25 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class AndroidUtilities {
 
+    private static Bitmap greenBitmap;
+
+    public static Bitmap getGreenBitmap() {
+        if(greenBitmap == null)
+            greenBitmap = createGreenBitmap(120,120);
+        return greenBitmap;
+    }
+
+    /**
+     * read a bitmap from a file and return a bitmap of a specific size
+      * @param desiredHeight
+     * @param desiredWidth
+     * @return
+     */
+    public static Bitmap createGreenBitmap( int desiredWidth,int desiredHeight) {
+        Bitmap image = Bitmap.createBitmap(desiredWidth, desiredHeight, Bitmap.Config.ARGB_8888);
+        image.eraseColor(android.graphics.Color.GREEN);
+        return image;
+    }
 
     /**
      * read a bitmap from a file and return a bitmap of a specific size

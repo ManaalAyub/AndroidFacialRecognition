@@ -90,6 +90,15 @@ public class OpenCVUtilities {
     }
 
 
+    public static List<File> makeCroppedImages(List<File> images,File tempDir)
+    {
+        List<File> cropped = new ArrayList<>();
+        for (File image : images) {
+            cropped.add(OpenCVUtilities.saveCroppedImage(image,tempDir));
+        }
+        return cropped;
+    }
+
     public static IplImage doDetectFace(IplImage smallImg, double[] faceFractions) {
         int imageHeight = smallImg.height();
         int imageWidth = smallImg.width();
@@ -226,10 +235,11 @@ public class OpenCVUtilities {
     public static void loadFaceDetector() {
         guaranteeLoaded();
         showFreeMemory("Before Face Detector Load");
-       // URL resource = OpenCVUtilities.class.getResource(HAAR_CLASSIFIER_RESOURCE);
-       // File file = new File(resource.getFile());
+       URL resource = OpenCVUtilities.class.getResource(HAAR_CLASSIFIER_RESOURCE);
+        File file = new File(resource.getFile());
 
-        File file = getDataFile(HAAR_CLASSIFIER_RESOURCE,null);
+    //    File file = getDataFile(HAAR_CLASSIFIER_RESOURCE,null);
+        boolean fileExists = file.exists();
                 String path = file.getAbsolutePath();
         faceDetector = new opencv_objdetect.CascadeClassifier(
                 cvLoad(path));
@@ -245,13 +255,21 @@ public class OpenCVUtilities {
         return cascade;
     }
 
-    private static void loadCascade() {
+    public static void loadCascade() {
         guaranteeLoaded();
 
 
         URL resource = OpenCVUtilities.class.getResource(HAAR_CLASSIFIER_RESOURCE);
         File file = new File(resource.getFile());
-        String path = file.getAbsolutePath();
+        loadCascade(  file);
+
+    }
+
+    public static void loadCascade(File file) {
+        guaranteeLoaded();
+
+
+         String path = file.getAbsolutePath();
         cascade = new opencv_objdetect.CvHaarClassifierCascade(
                 cvLoad(path));
 
@@ -470,7 +488,7 @@ public class OpenCVUtilities {
         return true;
     }
 
-    public static void saveCroppedImage(File imageFile, File saveDir) {
+    public static File saveCroppedImage(File imageFile, File saveDir) {
         try {
             System.out.println(imageFile.getAbsolutePath());
             IplImage smallImg = normailzedImage(imageFile);
@@ -478,7 +496,7 @@ public class OpenCVUtilities {
             double[] fractionFace = {0};
             IplImage cropped = doDetectFace(smallImg, fractionFace);
             if (cropped == null)
-                return;
+                return null;
             IplImage resizedImage = IplImage.create(FACE_WIDTH, FACE_HEIGHT, cropped.depth(), cropped.nChannels());
             cvResize(cropped, resizedImage);
 
@@ -490,9 +508,10 @@ public class OpenCVUtilities {
             File saveFile = new File(saveDir, imageFile.getName());
             cvSaveImage(saveFile.getAbsolutePath(), resizedImage);
             cropped.release();
+            return saveFile;
         } catch (RuntimeException e) {
             e.printStackTrace();    // ignore we expect a few errors
-            return;
+            return null;
 
         }
     }
@@ -583,9 +602,12 @@ public class OpenCVUtilities {
      */
     public static List<IdentificationResult> matchFile(File testFile, opencv_face.FaceRecognizer faceRecognizer, int retainedResults) {
         List<IdentificationResult> holder = new ArrayList<>();
-        Mat testImage = imread(testFile.getAbsolutePath(), CV_LOAD_IMAGE_GRAYSCALE);
+        if(!testFile.exists())
+            return holder;
+        String absolutePath = testFile.getAbsolutePath();
+        Mat testImage = imread(absolutePath, CV_LOAD_IMAGE_GRAYSCALE);
         String name = testFile.getName();
-        int fileIndex = indexFromTestName(name);
+//        int fileIndex = indexFromTestName(name);
 //        opencv_face.StandardCollector standardCollector = opencv_face.StandardCollector.create();
 //        faceRecognizer.predict_collect(testImage,standardCollector);
 //        IntDoublePairVector results = standardCollector.getResults(true);
@@ -641,7 +663,8 @@ public class OpenCVUtilities {
     public static List<IdentificationResult> matchFiles(List<File> files, opencv_face.FaceRecognizer faceRecognizer, int retainedResults) {
         List<IdentificationResult> holder = new ArrayList<>();
         for (File file : files) {
-            holder.addAll(matchFile(file, faceRecognizer, 3));
+            List<IdentificationResult> collection = matchFile(file, faceRecognizer, 3);
+            holder.addAll(collection);
         }
 
         Collections.sort(holder);
@@ -809,6 +832,53 @@ public class OpenCVUtilities {
         return getDataFile(FACE_RECOGNITION_NAME, getDataRoot());
     }
 
+    /**
+     * make sure f is an empty directory
+     * @param f possibly existing directory - cannot be a file
+     */
+    public static void cleanDirectory(File f){
+        if(!f.exists()) {
+            f.mkdirs();
+            return;
+        }
+        if(!f.isDirectory()) {
+            throw new IllegalArgumentException("must be directory " + f.getAbsolutePath());
+        }
+        while(f.listFiles() != null) {
+            File[] files = f.listFiles();
+            if(files == null || files.length == 0)
+                break;
+            for (int i = 0; i < files.length; i++) {
+                File file = files[i];
+                deleteFile(file);
+            }
+        }
+    }
+
+    /**
+     * delete a file - is a directory delete contents as well
+     * @param f
+     */
+    public static void deleteFile(File f){
+        if(!f.exists()) {
+              return;
+        }
+        if(!f.isDirectory()) {
+            f.delete();
+            return;
+        }
+        while(f.listFiles() != null) {
+            File[] files = f.listFiles();
+            for (int i = 0; i < files.length; i++) {
+                File file = files[i];
+
+            }
+        }
+        f.delete();
+
+    }
+
+
     public static File getDataFile(String name, File dir) {
         if (dir == null)
             dir =  getDataRoot(); //getAppContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
@@ -872,4 +942,14 @@ public class OpenCVUtilities {
     }
 
 
+    public static List<File> populateTestImages(File tmpDir, File unknownPerson) {
+        OpenCVUtilities.cleanDirectory(tmpDir);
+        List<File> faceFiles = new ArrayList<>();
+        File[] files = unknownPerson.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            File file = files[i];
+            saveCroppedImage(file,tmpDir);
+        }
+        return faceFiles;
+    }
 }
