@@ -18,6 +18,8 @@ package com.lordjoe.identifier;
      run FaceDetection lena.jpg
 */
 
+import android.util.Log;
+
 import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacpp.opencv_objdetect;
 import org.bytedeco.javacv.*;
@@ -86,6 +88,9 @@ public class AndroidFaceDetection {
         opencv_objdetect.CvHaarClassifierCascade cascade = new opencv_objdetect.CvHaarClassifierCascade(
                 cvLoad(CASCADE_FILE));
         System.out.println("Detecting faces...");
+
+        //Log.v("HERE I AM: ", "did something");
+
         CvSeq faces = cvHaarDetectObjects(smallImg, cascade, storage, 1.1, 3,
                 CV_HAAR_DO_CANNY_PRUNING);
         // CV_HAAR_DO_ROUGH_SEARCH);

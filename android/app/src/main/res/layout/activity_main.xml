@@ -13,8 +13,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Identification Application:"/>
-<!--
-    <Button
+
+    <!--<Button
         android:id="@+id/btnRecord"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -23,8 +23,8 @@
         android:id="@+id/btnIdentify"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Identify"/>
-       -->
+        android:text="Identify"/>-->
+
     <Button
         android:id="@+id/btnBuildRecognizer"
         android:layout_width="match_parent"
@@ -55,13 +55,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         />
-    <!--
+
     <Spinner
         android:id="@+id/spinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         />
-        -->
 </LinearLayout>
 
 

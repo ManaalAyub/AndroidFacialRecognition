@@ -1,9 +1,12 @@
 package com.lordjoe.identifier.android;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -31,9 +34,12 @@ import static com.lordjoe.identifier.OpenCVUtilities.loadFaceDetector;
 import static com.lordjoe.identifier.RegisteredPerson.exemplarFromDir;
 import static com.lordjoe.identifier.RegisteredPersonSet.NUMBER_TEST_IMAGES;
 
+
 public class MainActivity extends AppCompatActivity {
     private static MainActivity activeInstance;
     private static Random RND = new Random();
+    long startTime=0;
+    long difference=0;
 
     public static MainActivity getActiveInstance() {
         return activeInstance;
@@ -50,15 +56,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private RegisteredPersonSet registeredPeople;
- //   private Spinner peopleSelect;
+    //   private Spinner peopleSelect;
     private ImageView unknown;
     private ImageView recognized;
     private TextView unknownResult;
- //   private Button recordButton;
+    //   private Button recordButton;
     private Button buildRecognizerButton;
     private Button identifyButton;
     private Button identifyAndTrainButton;
-  //  private Button showPersonButton;
+    //  private Button showPersonButton;
     private PersonSelectorAdapter adapter;
 
     private View rootView;
@@ -83,19 +89,21 @@ public class MainActivity extends AppCompatActivity {
         unknown = (ImageView) findViewById(R.id.unknown);
         recognized = (ImageView) findViewById(R.id.recognized);
         //      recordButton = (Button) findViewById(R.id.btnRecord);
-  //      recordButton = (Button) findViewById(R.id.btnRecord);
-  //      recordButton.setOnClickListener(new View.OnClickListener() {
+        //      recordButton = (Button) findViewById(R.id.btnRecord);
+        //      recordButton.setOnClickListener(new View.OnClickListener() {
 //
-    //        @Override
-  //          public void onClick(View v) {
-  //              onRecord();
-  //          }
-  //      });
+        //        @Override
+        //          public void onClick(View v) {
+        //              onRecord();
+        //          }
+        //      });
         buildRecognizerButton = (Button) findViewById(R.id.btnBuildRecognizer);
         buildRecognizerButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
+                //startTime = System.currentTimeMillis(); /////Starting Time Calculation.
+                startTime= SystemClock.elapsedRealtime();
                 onRecognizer();
             }
         });
@@ -124,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        });
 //        peopleSelect = (Spinner) findViewById(R.id.spinner);
+        //The code above makes the app error-prone. Steve doesn't know who made these updates. Ignore for now.
         registeredPeople = null;
         RegisteredPerson[] objects = {};
         adapter = new PersonSelectorAdapter(this, R.layout.spinner_value_layout, objects);
@@ -134,6 +143,19 @@ public class MainActivity extends AppCompatActivity {
         rootView = identifyAndTrainButton.getRootView();
         runner = DefaultExecutorSupplier.getInstance();
         setDone();
+        //Keep Running onRecogniser Code. LOOP.
+        //this loop will allow us to run the usecase we want to measure, after every 3 seconds.
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // Do something after 5s = 5000m
+                onRecognizer();
+                //onIdentifyUnknown();
+                //onIdentifyAndTrainUnknown();
+            }
+        }, 3000);
+
     }
 
     private void onIdentifyUnknown() {
@@ -152,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("onIdentify", "hit");
                     List<File> testImages = new ArrayList<File>();
                     final RegisteredPerson testPerson = getRegisteredPerson(testImages);
-                    final IdentificationResult identificationResult = registeredPeople.identifyUnknown(testPerson);
+                    final IdentificationResult identificationResult = registeredPeople.identifyUnknown(testPerson);  ////////////////////Error comes up here.
                     RegisteredPerson identified = null;
                     if(identificationResult != null)
                         identified = registeredPeople.getById(identificationResult.label);
@@ -235,7 +257,7 @@ public class MainActivity extends AppCompatActivity {
 
                         File tmpDir = getTempDir("tmpImages");
                         List<File> cropped = OpenCVUtilities.makeCroppedImages(testImages, tmpDir);
-                         identify = registeredPeople.identify(cropped);
+                        identify = registeredPeople.identify(cropped);
                     }
                     final IdentificationResult finalResult = identify;
                     final Bitmap afterTraining = finalResult != null ? image : AndroidUtilities.getGreenBitmap();
@@ -245,15 +267,15 @@ public class MainActivity extends AppCompatActivity {
                             unknown.setImageBitmap(image);
                             recognized.setImageBitmap(afterTraining);
                             if(original != null) {
-                                  RegisteredPerson byId = registeredPeople.getById(original.label);
+                                RegisteredPerson byId = registeredPeople.getById(original.label);
                                 unknownResult.setText("Falsly Identified " + byId.getName());
 
                             }
                             else {
                                 if(finalResult != null) {
                                     unknownResult.setText("Trained " + testPerson.getName() + " " + (int)finalResult.confidence);
-                                  }
-                               else {
+                                }
+                                else {
                                     unknownResult.setText("Failed Train");
                                     recognized.setImageBitmap(AndroidUtilities.getGreenBitmap());
                                 }
@@ -302,17 +324,54 @@ public class MainActivity extends AppCompatActivity {
     public void setDone() {
         runOnUiThread(new Runnable() {
             public void run() {
-                  rootView.setBackgroundColor(Color.GREEN);
+                rootView.setBackgroundColor(Color.GREEN);
                 boolean ready = registeredPeople != null && registeredPeople.size() > 0;
-       //         recordButton.setEnabled(ready);
+                //         recordButton.setEnabled(ready);
                 identifyButton.setEnabled(ready);
-      //          showPersonButton.setEnabled(ready);
+                //          showPersonButton.setEnabled(ready);
                 identifyAndTrainButton.setEnabled(ready);
                 buildRecognizerButton.setEnabled(!ready);
+                if(ready==true)
+                //Restarting App Code. // Restart App each time after measuring time taken by one use-case.
+                //Threading makes the 2nd and 3rd usecase difficult to automate. Need to look into that.
+                {
+                    //identifyButton.performClick(); /////////////////////////////////////////////////////////////
+                    //identifyAndTrainButton.performClick();
+                    deleteCache();
+                    Intent i = getBaseContext().getPackageManager()
+                            .getLaunchIntentForPackage( getBaseContext().getPackageName() );
+                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(i);
+
+                }
             }
         });
 
 
+    }
+
+    public void deleteCache() {
+        try {
+            File dir = this.getCacheDir();
+            deleteDir(dir);
+        } catch (Exception e) {}
+    }
+
+    public boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+            String[] children = dir.list();
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
+            }
+            return dir.delete();
+        } else if(dir!= null && dir.isFile()) {
+            return dir.delete();
+        } else {
+            return false;
+        }
     }
 
     public void onRecognizer() {
@@ -343,8 +402,13 @@ public class MainActivity extends AppCompatActivity {
                         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         // see http://stackoverflow.com/questions/5999262/populate-spinner-dynamically-in-android-from-edit-text
                         //peopleSelect.setAdapter(adapter);
-                     }
+                    }
                 });
+                difference = SystemClock.elapsedRealtime()- startTime;
+                difference=difference/1000;
+                Log.w("time", "@ "+ Long.toString(difference));
+                startTime=0;
+                difference=0;
                 setDone();
 
             }

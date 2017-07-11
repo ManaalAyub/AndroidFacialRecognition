@@ -63,6 +63,8 @@ public class RecordActivity extends Activity implements OnClickListener {
     int imagesIndex, samplesIndex;
     private PowerManager.WakeLock mWakeLock;
     private File ffmpeg_link = new File(Environment.getExternalStorageDirectory(), "stream.mp4");
+
+
     private RecognizerFrameRecorder recorder;
     private boolean isPreviewOn = false;
     private int sampleAudioRateInHz = 44100;

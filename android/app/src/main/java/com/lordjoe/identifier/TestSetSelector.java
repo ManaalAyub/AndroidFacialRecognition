@@ -1,5 +1,4 @@
 package com.lordjoe.identifier;
-
 import java.io.File;
 import java.io.FilenameFilter;
  
