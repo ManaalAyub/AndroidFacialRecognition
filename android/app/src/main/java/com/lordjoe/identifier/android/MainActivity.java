@@ -145,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
         setDone();
         //Keep Running onRecogniser Code. LOOP.
         //this loop will allow us to run the usecase we want to measure, after every 3 seconds.
+        /*
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override
@@ -155,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
                 //onIdentifyAndTrainUnknown();
             }
         }, 3000);
+        */
 
     }
 
@@ -331,6 +333,7 @@ public class MainActivity extends AppCompatActivity {
                 //          showPersonButton.setEnabled(ready);
                 identifyAndTrainButton.setEnabled(ready);
                 buildRecognizerButton.setEnabled(!ready);
+                /*
                 if(ready==true)
                 //Restarting App Code. // Restart App each time after measuring time taken by one use-case.
                 //Threading makes the 2nd and 3rd usecase difficult to automate. Need to look into that.
@@ -344,6 +347,7 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(i);
 
                 }
+                */
             }
         });
 
